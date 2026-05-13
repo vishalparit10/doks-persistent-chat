@@ -23,13 +23,18 @@ kubectl installed.
 Docker installed locally.
 
 📂 Project Structure
-Bash
+
 .
 ├── app.py              # Flask Application logic
+
 ├── Dockerfile          # Container definition
+
 ├── app.yaml            # K8s Deployment & LoadBalancer Service
+
 ├── redis.yaml          # K8s Redis Deployment & Internal Service
+
 └── redis-pvc.yaml      # Persistent Volume Claim for DO Block Storage
+
 
 🏗️ Step-by-Step Execution
 1. Connect to your DOKS Cluster
@@ -67,7 +72,9 @@ C. Application Layer
 Note: Ensure you update the image path in app.yaml to match your registry.
 
 kubectl apply -f app.yaml
+
 🔍 Verification & Testing
+
 Get the Access URL
 DigitalOcean will provision an External Load Balancer. This may take 2-3 minutes:
 
@@ -85,6 +92,7 @@ kubectl delete pod -l app=redis
 Wait for a new pod to start, then refresh the browser. Your messages will still be there.
 
 🧹 Cleanup
+
 To avoid ongoing charges for the Load Balancer and Block Storage, delete the resources:
 
 kubectl delete -f app.yaml
@@ -92,4 +100,5 @@ kubectl delete -f redis.yaml
 kubectl delete -f redis-pvc.yaml
 
 📝 License
+
 Distributed under the MIT License. See LICENSE for more information.
