@@ -92,6 +92,45 @@ Delete the Redis pod manually:
 kubectl delete pod -l app=redis
 Wait for a new pod to start, then refresh the browser. Your messages will still be there.
 
+🧪 Experiment: Proving Persistence
+The best way to understand the difference between Stateless and Stateful workloads is to simulate a failure.
+
+Phase 1: The Stateless Failure
+Setup: Deploy Redis without the Volume configuration in redis.yaml.
+
+Action: Open the chat app and type: "This message is temporary."
+
+The Crash: Manually delete the Redis pod:
+
+Bash
+kubectl delete pod -l app=redis
+Observation: Once the new pod is Running, refresh your browser.
+
+Result: The chat history is empty. The data lived only in the pod's temporary memory (RAM).
+
+Phase 2: The Stateful Success
+Setup: Apply the redis-pvc.yaml and the updated redis.yaml (with Volume mounts).
+
+Action: Type: "This message is permanent!"
+
+The Crash: Delete the Redis pod again:
+
+Bash
+kubectl delete pod -l app=redis
+Observation: Refresh the browser.
+
+Result: The messages are still there! #### How to Verify via Logs
+You can actually see Redis recovering the data from the DigitalOcean Block Storage by checking the logs of the new pod:
+
+Bash
+# Get the new pod name
+kubectl get pods
+
+# View logs
+kubectl logs <new-redis-pod-name>
+You should see a log entry similar to: * DB loaded from append only file: 0.001 seconds
+
+
 🧹 Cleanup
 
 To avoid ongoing charges for the Load Balancer and Block Storage, delete the resources:
