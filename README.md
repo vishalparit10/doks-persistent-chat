@@ -37,6 +37,7 @@ Docker installed locally.
 
 
 🏗️ Step-by-Step Execution
+
 1. Connect to your DOKS Cluster
 First, point your local kubectl to your DigitalOcean cluster:
 
@@ -48,6 +49,7 @@ doctl kubernetes cluster kubeconfig save <cluster-name>
 
 # Verify connection
 kubectl get nodes
+
 2. Prepare the Container Registry
 You need a place to store your app image. Replace <your-registry> with your DigitalOcean Container Registry name.
 
@@ -59,18 +61,18 @@ docker build -t registry.digitalocean.com/<your-registry>/chat-app:v1 .
 
 # Push to DO
 docker push registry.digitalocean.com/<your-registry>/chat-app:v1
+
 3. Deploy the Infrastructure
 Apply the manifests in the following order:
 
 A. Storage Layer
-
 kubectl apply -f redis-pvc.yaml
-B. Database Layer
 
+B. Database Layer
 kubectl apply -f redis.yaml
+
 C. Application Layer
 Note: Ensure you update the image path in app.yaml to match your registry.
-
 kubectl apply -f app.yaml
 
 🔍 Verification & Testing
@@ -87,7 +89,6 @@ To verify that the Persistent Volume is working:
 Open the app and send a few messages.
 
 Delete the Redis pod manually:
-
 kubectl delete pod -l app=redis
 Wait for a new pod to start, then refresh the browser. Your messages will still be there.
 
