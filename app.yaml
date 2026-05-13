@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-app-deployment
+spec:
+  replicas: 2 # Scaling for high availability!
+  selector:
+    matchLabels:
+      app: chat-app
+  template:
+    metadata:
+      labels:
+        app: chat-app
+    spec:
+      containers:
+      - name: chat-app
+        image: registry.digitalocean.com/chat-app/chat-app:v1
+        ports:
+        - containerPort: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-app-lb
+spec:
+  type: LoadBalancer # This triggers a DigitalOcean Load Balancer (costs $)
+  selector:
+    app: chat-app
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
