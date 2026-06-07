@@ -21,7 +21,7 @@ doctl (DigitalOcean CLI) installed and authenticated.
 kubectl installed.
 
 Docker installed locally.
-
+ 
 📂 Project Structure
 
 .
