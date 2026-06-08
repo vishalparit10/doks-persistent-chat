@@ -57,10 +57,10 @@ You need a place to store your app image. Replace <your-registry> with your Digi
 doctl registry login
 
 # Build the image
-docker build -t registry.digitalocean.com/<your-registry>/chat-app:v1 .
+docker build -t registry.digitalocean.com/ <your-registry> /chat-app:v1 .
 
 # Push to DO
-docker push registry.digitalocean.com/<your-registry>/chat-app:v1
+docker push registry.digitalocean.com/ <your-registry> /chat-app:v1
 
 3. Deploy the Infrastructure
 Apply the manifests in the following order:
