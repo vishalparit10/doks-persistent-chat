@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: chat-app
-        image: registry.digitalocean.com/chat-app/chat-app:v1
+        image: registry.digitalocean.com/testing-1/chat-app:v1
         ports:
         - containerPort: 5000
 ---
