@@ -17,14 +17,6 @@ spec:
         image: redis:alpine
         ports:
         - containerPort: 6379
-        command: ["redis-server", "--appendonly", "yes"] # Enable persistence
-        volumeMounts:
-        - name: redis-data
-          mountPath: /data # Redis stores data here by default
-      volumes:
-      - name: redis-data
-        persistentVolumeClaim:
-          claimName: redis-pvc
 ---
 apiVersion: v1
 kind: Service
