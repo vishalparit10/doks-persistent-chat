@@ -1,144 +1,110 @@
-Ephemeral Chat App on DigitalOcean Kubernetes (DOKS)
-A real-time chat application built with Python (Flask) and Redis, demonstrating how to handle stateful workloads in Kubernetes using DigitalOcean Block Storage.
+Ephemeral Chat App: Shifting From Stateless to Stateful on DOKS
+This repository contains a real-time Python/Flask chat application deployed on DigitalOcean Kubernetes (DOKS) using Redis as a backend. The core focus of this project is to explicitly demonstrate and analyze the difference between a Stateless and Stateful architecture by running a controlled cluster disruption test.
 
-🚀 Overview
-This project showcases a high-availability deployment on Kubernetes. While the web frontend is stateless and scales easily, the Redis backend is "stateful," utilizing a Persistent Volume Claim (PVC) to ensure chat history survives pod restarts or cluster updates.
+🏗 Repository Structure
+app.py – The Python Flask application using Redis Pub/Sub / Lists.
 
-Key Features
-Persistence: Uses do-block-storage to persist Redis data.
+Dockerfile – Container configuration for the Flask app.
 
-High Availability: Scalable Flask frontend managed by a Load Balancer.
+app.yaml – Kubernetes Deployment (2 replicas) and LoadBalancer Service for the web app.
 
-Containerized: Fully Dockerized and ready for CI/CD.
+redis.yaml – Kubernetes Deployment and ClusterIP Service for the Redis backend.
 
-🛠️ Prerequisites
-Before running this project, ensure you have:
+redis-pvc.yaml – Kubernetes PersistentVolumeClaim using do-block-storage.
 
-A DigitalOcean account.
+🛠 Prerequisites
+Before executing the manifests, ensure you have the following tools configured:
 
-doctl (DigitalOcean CLI) installed and authenticated.
+An active DigitalOcean Account with a provisioned Kubernetes (DOKS) cluster.
 
-kubectl installed.
+doctl CLI installed and authenticated.
 
-Docker installed locally.
- 
-📂 Project Structure
+kubectl CLI installed locally.
 
-.
-├── app.py              # Flask Application logic
+Docker Desktop running locally.
 
-├── Dockerfile          # Container definition
+📥 Step 1: Cluster Context Connection
+To avoid default localhost:8080 connection errors, link your local machine to your cloud cluster.
 
-├── app.yaml            # K8s Deployment & LoadBalancer Service
+Find your DOKS cluster name:
 
-├── redis.yaml          # K8s Redis Deployment & Internal Service
-
-└── redis-pvc.yaml      # Persistent Volume Claim for DO Block Storage
-
-
-🏗️ Step-by-Step Execution
-
-1. Connect to your DOKS Cluster
-First, point your local kubectl to your DigitalOcean cluster:
-
-# Get your cluster name
+Bash
 doctl kubernetes cluster list
+Save the cluster context (Execute as your regular local user):
 
-# Save the kubeconfig (replace <cluster-name> with yours)
-doctl kubernetes cluster kubeconfig save <cluster-name>
+Bash
+doctl kubernetes cluster kubeconfig save <your-cluster-name>
+(Note for Linux users using the doctl Snap: If you encounter sandbox permission errors, run sudo snap connect doctl:kube-config and mkdir -p $HOME/.kube before trying again).
 
-# Verify connection
+Verify the active link:
+
+Bash
 kubectl get nodes
+🧪 Step 2: Phase 1 — Testing the "Stateless" Behavior
+In this phase, Redis stores data exclusively in volatile container memory (RAM). If the container dies, the data dies.
 
-2. Prepare the Container Registry
-You need a place to store your app image. Replace <your-registry> with your DigitalOcean Container Registry name.
+Apply the baseline manifests:
 
-# Log in
-doctl registry login
-
-# Build the image
-docker build -t registry.digitalocean.com/your-registry/chat-app:v1 .
-
-# Push to DO
-docker push registry.digitalocean.com/your-registry/chat-app:v1
-
-3. Deploy the Infrastructure
-Apply the manifests in the following order:
-
-A. Storage Layer
-kubectl apply -f redis-pvc.yaml
-
-B. Database Layer
+Bash
 kubectl apply -f redis.yaml
-
-C. Application Layer
-Note: Ensure you update the image path in app.yaml to match your registry.
 kubectl apply -f app.yaml
+Retrieve the Load Balancer IP:
 
-🔍 Verification & Testing
+Bash
+kubectl get svc chat-app-lb -w
+Once the EXTERNAL-IP resolves, copy and paste it into your web browser.
 
-Get the Access URL
-DigitalOcean will provision an External Load Balancer. This may take 2-3 minutes:
+Run the Stateless Disruption Test:
 
-kubectl get svc chat-app-lb
-Copy the EXTERNAL-IP and paste it into your browser.
+Open the app in your browser and post 3 or 4 messages.
 
-The Persistence Test
-To verify that the Persistent Volume is working:
-
-Open the app and send a few messages.
-
-Delete the Redis pod manually:
-kubectl delete pod -l app=redis
-Wait for a new pod to start, then refresh the browser. Your messages will still be there.
-
-🧪 Experiment: Proving Persistence
-The best way to understand the difference between Stateless and Stateful workloads is to simulate a failure.
-
-Phase 1: The Stateless Failure
-Setup: Deploy Redis without the Volume configuration in redis.yaml.
-
-Action: Open the chat app and type: "This message is temporary."
-
-The Crash: Manually delete the Redis pod:
+In your terminal, simulate an unexpected crash by deleting the Redis pod:
 
 Bash
 kubectl delete pod -l app=redis
-Observation: Once the new pod is Running, refresh your browser.
+Wait roughly 10 seconds for the pod to cycle, then refresh your browser.
 
-Result: The chat history is empty. The data lived only in the pod's temporary memory (RAM).
+Result: The chat history is completely gone.
 
-Phase 2: The Stateful Success
-Setup: Apply the redis-pvc.yaml and the updated redis.yaml (with Volume mounts).
+💾 Step 3: Phase 2 — Shifting the Architecture to "Stateful"
+To ensure our data layer survives container lifecycles, we transition to a stateful setup by connecting an external DigitalOcean Cloud SSD.
 
-Action: Type: "This message is permanent!"
+Provision the DigitalOcean Block Storage:
 
-The Crash: Delete the Redis pod again:
+Bash
+kubectl apply -f redis-pvc.yaml
+Upgrade Redis to use the Volume Mounts:
+Open your redis.yaml and ensure it includes the stateful refactoring configurations (the command: ["redis-server", "--appendonly", "yes"], volumeMounts, and pod volumes mapping to your redis-pvc). Then apply the changes:
+
+Bash
+kubectl apply -f redis.yaml
+Kubernetes will perform a rolling update, detaching the old stateless configuration and mounting the new storage disk.
+
+Run the Stateful Disruption Test:
+
+Return to your browser app and post new messages (e.g., "This data lives on an SSD!").
+
+Delete the Redis pod once more to simulate another failure:
 
 Bash
 kubectl delete pod -l app=redis
-Observation: Refresh the browser.
-
-Result: The messages are still there! #### How to Verify via Logs
-You can actually see Redis recovering the data from the DigitalOcean Block Storage by checking the logs of the new pod:
+Watch the real-time file recovery metrics straight from your new pod logs:
 
 Bash
-# Get the new pod name
 kubectl get pods
-
-# View logs
 kubectl logs <new-redis-pod-name>
-You should see a log entry similar to: * DB loaded from append only file: 0.001 seconds
+(Look for: * DB loaded from append only file...)
 
+Refresh your browser. * Result: Your messages remain perfectly intact! The cloud SSD was successfully re-attached to the new pod container.
 
-🧹 Cleanup
+🧹 Resource Cleanup
+To stop DigitalOcean from billing you for the active Load Balancer and Block Storage assets when you are done experimenting, tear down all resources completely:
 
-To avoid ongoing charges for the Load Balancer and Block Storage, delete the resources:
-
+Bash
 kubectl delete -f app.yaml
 kubectl delete -f redis.yaml
 kubectl delete -f redis-pvc.yaml
+📊 Core Architecture Takeaways
+Stateless Layer (app.yaml): Easily scales up or down horizontally. Pods can be destroyed without care because they don't retain data local to their filesystem.
 
-📝 License
-
-Distributed under the MIT License. See LICENSE for more information.
+Stateful Layer (redis.yaml + redis-pvc.yaml): Requires decoupled, cloud-managed block storage volumes to maintain state over container lifecycles. Data is persistent and survives pod terminations.
